@@ -2,7 +2,7 @@
     "connection_details":{
         "oic_rest_endpoint":"https://psm.us.oraclecloud.com/",
         "db_rest_endpoint":"https://dbaas.oraclecloud.com/",
-        "idcs_id":"idcs-9cdcda5af2074b3294f2a6bd1049c948",
+        "idcs_id":"idcs-xxx",
         "user":{
             "username":"cloud.admin",
             "password":"<password read from environment variable oic_password>"

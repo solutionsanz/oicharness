@@ -1,0 +1,18 @@
+{
+    "idcs_uri":"https://idcs-xxx.identity.oraclecloud.com",
+    "urls":{
+        "token":"/oauth2/v1/token",
+        "auth":"/oauth2/v1/authorize",
+        "revoke":"/oauth2/v1/revoke"
+    },
+    "login_client":{
+        "id":"beaxxx",
+        "secret":"108xxx"
+    },
+    "admin_client":{
+        "id":"client_id",
+        "secret":"secret"
+    },
+    "token_public_key":"-----BEGIN CERTIFICATE----- \nxxx",
+    "redirect_uri":"http://localhost:3000/callback"
+}
