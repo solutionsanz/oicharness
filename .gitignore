@@ -33,3 +33,4 @@ apis4gifts-pvc.yaml
 Vagrantfile
 
 sso_config.json
+app_config.json
