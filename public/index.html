@@ -1,0 +1,222 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+	<meta charset="utf-8">
+	<title>Sky Mega Menu</title>
+
+	<meta name="viewport" content="width=device-width, initial-scale=1.0, minimum-scale=1.0">
+
+	<link rel="stylesheet" href="css/demo.css">
+	<link rel="stylesheet" href="css/font-awesome.css">
+	<link rel="stylesheet" href="css/sky-mega-menu.css">
+	<link rel="stylesheet" href="css/sky-mega-menu-blue.css">
+
+	<!--[if lt IE 9]>
+			<link rel="stylesheet" href="css/sky-mega-menu-ie8.css">
+			<script src="http://html5shim.googlecode.com/svn/trunk/html5.js"></script>
+		<![endif]-->
+
+	<!--[if lt IE 10]>
+			<script src="http://ajax.googleapis.com/ajax/libs/jquery/1.9.1/jquery.min.js"></script>
+			<script src="js/jquery.placeholder.min.js"></script>
+		<![endif]-->
+	<script src="js/sharedLibs.js"></script>
+	<script src="https://ajax.googleapis.com/ajax/libs/jquery/3.3.1/jquery.min.js"></script>	
+	<style>
+		#services {
+			font-family: "Trebuchet MS", Arial, Helvetica, sans-serif;
+			border-collapse: collapse;
+			width: 50%;
+		}
+
+		#services td,
+		#services th {
+			border: 1px solid #ddd;
+			padding: 8px;
+		}
+
+		#services tr:nth-child(even) {
+			background-color: #f2f2f2;
+		}
+
+		#services tr:hover {
+			background-color: #ddd;
+		}
+
+		#services th {
+			padding-top: 12px;
+			padding-bottom: 12px;
+			text-align: left;
+			background-color: rgb(80, 117, 177);
+			color: white;
+		}
+
+		/* The switch - the box around the slider */
+		.switch {
+			position: relative;
+			display: inline-block;
+			width: 120px;
+			height: 34px;
+		}
+
+		/* Hide default HTML checkbox */
+		.switch input {
+			opacity: 0;
+			width: 0;
+			height: 0;
+		}
+
+		/* The slider */
+		.slider {
+			position: absolute;
+			cursor: pointer;
+			top: 0;
+			left: 0;
+			right: 0;
+			bottom: 0;
+			background-color: #ccc;
+			-webkit-transition: .4s;
+			transition: .4s;
+		}
+
+		.slider:before {
+			position: absolute;
+			content: "";
+			height: 26px;
+			width: 26px;
+			left: 4px;
+			bottom: 4px;
+			background-color: white;
+			-webkit-transition: .4s;
+			transition: .4s;
+		}
+
+		input:checked+.slider {
+			background-color: #2196F3;
+		}
+
+		input:focus+.slider {
+			box-shadow: 0 0 1px #2196F3;
+		}
+
+		input:checked+.slider:before {
+			-webkit-transform: translateX(87px);
+			-ms-transform: translateX(87px);
+			transform: translateX(87px);
+		}
+
+		/* Rounded sliders */
+		.slider.round {
+			border-radius: 34px;
+		}
+
+		.slider.round:before {
+			border-radius: 50%;
+		}
+	</style>
+</head>
+
+<body class="bg-blue">
+	<div class="body">
+
+		<!-- mega menu -->
+		<ul class="sky-mega-menu sky-mega-menu-anim-flip sky-mega-menu-response-to-icons">
+			<!-- home -->
+			<li>
+				<a href="javascript:goHome();"><i class="fa fa-single fa-home"></i></a>
+			</li>
+			<!--/ home -->
+
+			<!-- about -->
+			<li aria-haspopup="true">
+				<a href="#"><i class="fa fa-star"></i>Services</a>
+				<div class="grid-container3">
+					<ul>
+						<li><a href="javascript:loadOICInstances();"><i class="fa fa-check"></i>Integration Cloud</a></li>
+						<li aria-haspopup="true"><a href="javascript:cleanTable();"><i class="fa fa-check"></i>Analytics Cloud</a></li>
+						<li aria-haspopup="true"><a href="javascript:cleanTable();"><i class="fa fa-check"></i>ADW</a></li>
+					</ul>
+				</div>
+			</li>
+			<!--/ about -->
+
+
+			<!-- SSO into Cloud Console -->
+			<li aria-haspopup="true" class="right">
+				<a href="#"><i class="fa fa-globe"></i>Console</a>
+				<div class="grid-container3">
+					<ul>
+						<li><a href="#"><i class="fa fa-link"></i>Integration</a></li>
+						<li><a href="#"><i class="fa fa-picture-o"></i>Analytics</a></li>
+						<li><a href="#"><i class="fa fa-th-large"></i>ADW</a></li>
+						<li><a href="#"><i class="fa fa-th-large"></i>ATP</a></li>
+					</ul>
+				</div>
+			</li>
+			<!--/ SSO into Cloud Console -->
+
+			<!-- contacts -->
+			<li aria-haspopup="true" class="right">
+				<a href="#_"><i class="fa fa-envelope-o"></i>Contact</a>
+				<div class="grid-container6">
+					<form action="#">
+						<fieldset>
+							<section>
+								<label class="textarea">
+									<i class="fa fa-append fa-comment"></i>
+									<textarea rows="4" placeholder="Message"></textarea>
+								</label>
+							</section>
+
+							<button type="submit" class="button">Send message</button>
+						</fieldset>
+					</form>
+				</div>
+			</li>
+			<!--/ contacts -->
+		</ul>
+		<!--/ mega menu -->
+	</div>
+	<br><br>
+	<center>
+		<div id="table">
+			<table id="services">
+				<!--tr>
+					<th>
+						<center>Service Name</center>
+					</th>
+					<th>
+						<center>State</center>
+					</th>
+				</tr>
+				<tr>
+					<td id="nEnv0"></td>
+					<td>
+						<center>
+							<label class="switch">
+								<input id="s0" type="checkbox" onchange="changeState(0);">
+								<span class="slider round"></span>
+							</label><br>
+							<label id="sEnv0"></label>
+						</center>
+					</td>
+				</tr>
+				<tr>
+					<td id="nEnv1"></td>
+					<td>
+						<center>
+							<label class="switch">
+								<input id="s1" type="checkbox" onchange="changeState(1);">
+								<span class="slider round"></span>
+							</label><br>
+							<label id="sEnv1"></label>
+						</center>
+					</td>
+				</tr-->
+			</table>
+		</div>
+	</center>
+</body>
+
+</html>

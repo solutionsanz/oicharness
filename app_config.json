@@ -1,0 +1,25 @@
+{
+    "connection_details":{
+        "oic_rest_endpoint":"https://psm.us.oraclecloud.com/",
+        "db_rest_endpoint":"https://dbaas.oraclecloud.com/",
+        "idcs_id":"idcs-9cdcda5af2074b3294f2a6bd1049c948",
+        "user":{
+            "username":"cloud.admin",
+            "password":"<password read from environment variable oic_password>"
+        }
+    },
+    "oic_instance_details":{
+        "stop_all_instances":true,
+        "instance_names":["IntegrationAndProcess"]
+    },
+    "db_instance_details":{
+        "instance_names":["ClassicDB"]
+    },
+    "schedule":{
+        "frequency":1,
+        "frequency_unit":"DAYS",
+        "timezone":"+11",
+        "oic_shutdown":1800,
+        "db_shutdown":1830
+    }
+}
