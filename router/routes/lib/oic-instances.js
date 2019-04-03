@@ -106,3 +106,42 @@ module.exports.stopInstance = function (instanceName, connectionDetails, callbac
     return callback(null);
   });
 };
+
+/*
+ * Start an instance via the API. Takes an instance name, and the connection details block of 
+ * the config.
+ * 
+ * callback is of the form (err)
+ */
+module.exports.startInstance = function (instanceName, connectionDetails, callback) {
+  if (!instanceName || typeof instanceName != 'string' || !connectionDetails.oic_rest_endpoint || !connectionDetails.idcs_id) {
+    return callback(new Error("Instance name, IDCS and Rest Endpoint are required to invoke the OIC APIs!"));
+  }
+  var url = connectionDetails.oic_rest_endpoint;
+  if (!url.endsWith("/")) {
+    url += "/";
+  }
+  url += "paas/api/v1.1/instancemgmt/" + connectionDetails.idcs_id + "/services/IntegrationCloud/instances/";
+  url += instanceName + "/hosts/start";
+  var options = {
+    url: url,
+    method: "POST",
+    headers: {
+      "X-ID-TENANT-NAME": connectionDetails.idcs_id,
+      Authorization: "Basic " + Buffer.from(connectionDetails.user.username + ":" + (process.env.oic_password || connectionDetails.user.password), 'utf8').toString('base64'),
+      "Content-Type": "application/vnd.com.oracle.oracloud.provisioning.Service+json"
+    },
+    body: JSON.stringify({
+      "allServiceHosts": true
+    })
+  }
+  request(options, function (err, req, data) {
+    if (err) {
+      return callback(err);
+    }
+    if (req.statusCode != 202) {
+      return callback(new Error("Got response code " + req.statusCode + " when attempting to start the OIC instance: " + instanceName));
+    }
+    return callback(null);
+  });
+};

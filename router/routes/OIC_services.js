@@ -110,7 +110,7 @@ module.exports = function (app, ensureAuthenticated) {
 
   });
 
-  app.get('/services/oic/:name', ensureAuthenticated, function (req, res) {
+  app.put('/services/oic/:name', ensureAuthenticated, function (req, res) {
 
     // Retrieving parameters:
     var name = req.params.name;
@@ -132,9 +132,7 @@ module.exports = function (app, ensureAuthenticated) {
 
       case "START":
 
-        log("PUT", "/services/adw/{ocid}", "Invalid action. Only 'start' or 'stop' are allowed. Verify parameters and try again.");
-        res.status(400).end("Invalid action. Only 'start' or 'stop' are allowed. Verify parameters and try again."); //Bad request...
-        return;
+        startOICInstances([name], [dbName]);
         break;
 
       case "STOP":
@@ -195,28 +193,82 @@ module.exports = function (app, ensureAuthenticated) {
     });
   }
 
-  function shutdownOICInstances(arrInstances, arrDbName) {
+  function startOICInstances(arrInstances, arrDbNames) {
+
+    /**
+     * Starting DBCS first, then OIC instances.
+     */
+
+    async.eachOf(arrDbNames, function (instance) {
+      logger.info("Starting DBCS [" + instance + "]");
+      dbInstances.stopInstance(instance, config.connection_details, function (err) {
+        if (err) {
+          return logger.warn("Error when attempting to start instance [" + instance + "], " + err);
+        }
+        logger.info("Scheduled start of [" + instance + "].");
+
+
+        logger.info("Scheduling DB start in 30 minutes from now: ");
+
+        // Setting a non-repeatable job in 30 mins.
+        /**
+         * @TODO: Move back to 30 minutes after test
+         */
+        scheduler.scheduleJob(1 * 60 * 1000, false, "NA", 0, startOICOnlyInstances, arrInstances);
+      });
+    }, function () {
+      logger.info("Finished DB start.");
+    });
+  }
+
+  function startOICOnlyInstances(arrInstances) {
 
     async.eachOf(arrInstances, function (instance) {
-      logger.info("Scheduling stop of " + instance + "...");
+
+      logger.info("Starting OIC [" + instance + "]");
+
+      oicInstances.startInstance(instance, config.connection_details, function (err) {
+        if (err) {
+          return logger.warn("Error when attempting to start instance [" + instance + "], " + err);
+        }
+
+      });
+    }, function () {
+
+      logger.info("Finished OIC start.");
+    });
+  }
+
+
+
+  function shutdownOICInstances(arrInstances, arrDbNames) {
+
+    async.eachOf(arrInstances, function (instance) {
+
+      logger.info("Shutting down OIC [" + instance + "]");
+
       oicInstances.stopInstance(instance, config.connection_details, function (err) {
         if (err) {
           return logger.warn("Error when attempting to shutdown instance [" + instance + "], " + err);
         }
-        logger.info("Scheduled shutdown of [" + instance + "].");
+
+        logger.info("Scheduling DB shutdown in 30 minutes from now: ");
+
+        // Setting a non-repeatable job in 30 mins.
+        /**
+         * @TODO: Move back to 30 minutes after test
+         */
+        scheduler.scheduleJob(1 * 60 * 1000, false, "NA", 0, shutdownDBInstances, arrDbNames);
       });
     }, function () {
 
-      logger.info("Finished OIC shutdown. Scheduling DB shutdown in 30 minutes from now: ");
-
-      // Setting a non-repeatable job in 30 mins.
-      scheduler.scheduleJob(startDbOffset, false, "MINUTES", 1, shutdownDBInstances, arrDbName);
+      logger.info("Finished OIC shutdown.");
     });
   }
 
   function shutdownDBInstances(instances) {
     async.eachOf(instances, function (instance) {
-      logger.info("Scheduling stop of " + instance + "...");
+      logger.info("Shutting down DBCS [" + instance + "]");
       dbInstances.stopInstance(instance, config.connection_details, function (err) {
         if (err) {
           return logger.warn("Error when attempting to shutdown instance [" + instance + "], " + err);

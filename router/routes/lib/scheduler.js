@@ -45,7 +45,8 @@ Scheduler.prototype.scheduleJob = function (startTimeOffset, repeats, repeatUnit
   }
   this.jobs[jobId] = {};
   this.jobs[jobId].timeoutId = setTimeout(function(){
-    job(...jobArgs);
+    //job(...jobArgs);
+    job(jobArgs);
     if(repeats){
         this.jobs[jobId].intervalId = setInterval(job, repeatNumUnits*_unitMillseconds[repeatUnit], ...jobArgs);
     }
