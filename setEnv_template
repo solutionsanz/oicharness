@@ -1,1 +1,2 @@
 oic_password=XXXX
+server_url=http://localhost:3000/services/oic

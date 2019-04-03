@@ -4,6 +4,7 @@
  */
 const async = require('async');
 const log4js = require('log4js');
+var fs = require('fs');
 
 var logger = log4js.getLogger("opc-instance-handler");
 logger.level = 'info';
@@ -70,6 +71,18 @@ var scheduler = new Scheduler();
 //CRI change:
 var bodyParser = require('body-parser');
 
+// Reading from local config variables. This will be used to configure the local Web UI app (running on a user's browser/mobile)
+// Need a system property server_url set to something like: http://localhost:3000/services/oic
+var data = 'localConfig = {"SERVER_URL": "' + process.env.server_url + '"};';
+
+console.log("data is [" + data + "]");
+
+fs.writeFile('./public/js/tempConfig.js', data, function (err, data) {
+    if (err) console.log(err);
+    console.log("Successfully written local config to file [public/js/tempConfig.js]");
+});
+
+
 // Configure application routes
 module.exports = function (app, ensureAuthenticated) {
 
@@ -110,7 +123,7 @@ module.exports = function (app, ensureAuthenticated) {
 
   });
 
-  app.put('/services/oic/:name', ensureAuthenticated, function (req, res) {
+  app.post('/services/oic/:name', ensureAuthenticated, function (req, res) {
 
     // Retrieving parameters:
     var name = req.params.name;
@@ -120,13 +133,13 @@ module.exports = function (app, ensureAuthenticated) {
     if (name == null || name == undefined || action == null ||
       action == undefined || dbName == null || dbName == undefined) {
 
-      log("PUT", "/services/adw/{ocid}", "OIC parameters empty or invalid. Verify parameters and try again.");
+      log("POST", "/services/adw/{ocid}", "OIC parameters empty or invalid. Verify parameters and try again.");
       res.status(400).end("OIC parameters empty or invalid. Verify parameters and try again."); //Bad request...
       return;
     }
 
 
-    log("PUT", "/services/oic/{name}", "name received [" + name + ":" + action + "]");
+    log("POST", "/services/oic/{name}", "name received [" + name + ":" + action + "]");
 
     switch (action.toUpperCase()) {
 
@@ -141,7 +154,7 @@ module.exports = function (app, ensureAuthenticated) {
         break;
 
       default:
-        log("PUT", "/services/adw/{ocid}", "Invalid action. Only 'start' or 'stop' are allowed. Verify parameters and try again.");
+        log("POST", "/services/adw/{ocid}", "Invalid action. Only 'start' or 'stop' are allowed. Verify parameters and try again.");
         res.status(400).end("Invalid action. Only 'start' or 'stop' are allowed. Verify parameters and try again."); //Bad request...
         return;
     }

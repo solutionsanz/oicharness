@@ -4,7 +4,6 @@
  */
 
 const request = require('request');
-const config = require('../../../app_config.json');
 
 /*
  * Gets a list of all instances in the environment. Takes the connection details block of the
@@ -55,7 +54,8 @@ module.exports.getAllInstances = function (connectionDetails, callback) {
 
           "name" : instance,
           "state" : dataJSON.services[instance].state,
-          "dbName" : dataJSON.services[instance].allAssociations.toAssociations[0].displayName === "DbaaS association" ? dataJSON.services[instance].allAssociations.toAssociations[0].destServiceName : "Error"
+          "dbName" : dataJSON.services[instance].allAssociations.toAssociations[0].displayName === "DbaaS association" ? dataJSON.services[instance].allAssociations.toAssociations[0].destServiceName : "Error",
+          "dbState" : dataJSON.services[instance].allAssociations.toAssociations[0].displayName === "DbaaS association" ? dataJSON.services[instance].allAssociations.toAssociations[0].serviceStatus : "Error"
         };
 
         services.push(resBody);
