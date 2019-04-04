@@ -1,12 +1,23 @@
 // @TODO configure this more formally based on a config file/system variable...
 //const SERVER_URL = 'http://localhost:3000/services/oic';
 
+
 const SERVER_URL = localConfig.SERVER_URL;
+const CONSOLE_URL = localConfig.CONSOLE_URL;
 
-console.log("SERVER_URL is [" + SERVER_URL + "]");
+window.onload = function () {
 
-if(SERVER_URL == null || SERVER_URL == undefined){
-    alert("SERVER URL is not set properly.");
+     console.log("SERVER_URLis [" + SERVER_URL + "], CONSOLE_URL is [" + CONSOLE_URL + "]");
+
+    // Setting URLs:
+    document.getElementById('consoleid').href = "javascript:window.open('" + CONSOLE_URL + "');";
+
+
+    console.log("SERVER_URL is [" + SERVER_URL + "]");
+
+    if (SERVER_URL == null || SERVER_URL == undefined) {
+        alert("SERVER URL is not set properly.");
+    }
 }
 
 

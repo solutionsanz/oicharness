@@ -73,7 +73,7 @@ var bodyParser = require('body-parser');
 
 // Reading from local config variables. This will be used to configure the local Web UI app (running on a user's browser/mobile)
 // Need a system property server_url set to something like: http://localhost:3000/services/oic
-var data = 'localConfig = {"SERVER_URL": "' + process.env.server_url + '"};';
+var data = 'localConfig = {"SERVER_URL": "' + process.env.server_url + '", "CONSOLE_URL":"' + process.env.console_url + '"};';
 
 console.log("data is [" + data + "]");
 
