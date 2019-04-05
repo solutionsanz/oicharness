@@ -214,7 +214,7 @@ module.exports = function (app, ensureAuthenticated) {
 
     async.eachOf(arrDbNames, function (instance) {
       logger.info("Starting DBCS [" + instance + "]");
-      dbInstances.stopInstance(instance, config.connection_details, function (err) {
+      dbInstances.startInstance(instance, config.connection_details, function (err) {
         if (err) {
           return logger.warn("Error when attempting to start instance [" + instance + "], " + err);
         }
