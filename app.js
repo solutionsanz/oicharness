@@ -11,8 +11,6 @@ const ONE_HOUR = 3600000;
 
 const config = require('./sso_config.json');
 
-//Just working with a single refresh token for demo purposes.
-var refresh_token;
 
 var app = express();
 app.use(cookieParser());
@@ -25,7 +23,7 @@ function ensureAuthenticated(req, res, next) {
   //denied. redirect to login
   //Could generate redirect url dynamically... but lazy
   res.redirect(config.idcs_uri + config.urls.auth + "?client_id=" +config.login_client.id 
-  +"&redirect_uri=" + config.redirect_uri + "&response_type=code&scope=urn:opc:idm:__myscopes__%20offline_access");
+  +"&redirect_uri=" + config.redirect_uri + "&response_type=code&scope=urn:opc:idm:__myscopes__");
 }
 
 //Expose our demo UI
@@ -62,10 +60,6 @@ app.get('/callback', function(req, res){
     //We should have an access token and a refresh token in our response body
     try{
       var bodyJSON = JSON.parse(body);
-      if(bodyJSON.refresh_token){
-        console.log("Stored refresh token!");
-        refresh_token = bodyJSON.refresh_token;
-      }
       //return the access token in a cookie
       res.cookie(TOKEN_CLAIMS_COOKIE, bodyJSON.access_token, {httpOnly:true, expires:new Date(Date.now() + ONE_HOUR)}).redirect("/demo");
     }catch(ex){
