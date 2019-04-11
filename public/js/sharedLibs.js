@@ -1,4 +1,4 @@
-// @TODO configure this more formally based on a config file/system variable...
+// SERVER_URL is based on a config file/system variable "server_url"...
 //const SERVER_URL = 'http://localhost:3000/services/oic';
 
 
@@ -32,10 +32,10 @@ function loadOICInstances() {
             state = result.services[i].state;
             dbName = result.services[i].dbName;
             dbState = result.services[i].dbState;
-            isDisabled = (state.toUpperCase() != "STOPPED" && state.toUpperCase() != "AVAILABLE") || (dbState.toUpperCase() != "STOPPED" &&
-                dbState.toUpperCase() != "AVAILABLE") ? "disabled" : "";
-            isChecked = state.toUpperCase() == "STARTING" || state.toUpperCase() == "AVAILABLE" || dbState.toUpperCase() == "STARTING" ||
-                dbState.toUpperCase() == "AVAILABLE" ? "checked" : "";
+            isDisabled = (state.toUpperCase() != "STOPPED" && state.toUpperCase() != "READY") || (dbState.toUpperCase() != "STOPPED" &&
+                dbState.toUpperCase() != "READY") ? "disabled" : "";
+            isChecked = state.toUpperCase() == "STARTING" || state.toUpperCase() == "READY" || dbState.toUpperCase() == "STARTING" ||
+                dbState.toUpperCase() == "READY" ? "checked" : "";
 
             console.log("Setting nEnv" + i + "to [" + name + "]");
             console.log("Setting sEnv" + i + "to [" + state + "]");
@@ -49,7 +49,7 @@ function loadOICInstances() {
                 rowHtml = '<tr><th><center>Service Name</center></th><th><center>State</center></th></tr>';
             }
 
-            rowHtml += '<input type="hidden" id="dbName' + i + '" value="' + dbName + '"/><input type="hidden" id="dbState' + i + '" value="' + dbState + '"/><tr><td id="nEnv' + i + '">' + name + '</td><td><center><label class="switch"><input id="s' + i + '" type="checkbox" onchange="changeState(' + i + ');" ' + isDisabled + ' ' + isChecked + '><span class="slider round"></span></label><br><label id="sEnv' + i + '">' + state + '</label></center></td></tr>';
+            rowHtml += '<input type="hidden" id="dbName' + i + '" value="' + dbName + '"/><input type="hidden" id="dbState' + i + '" value="' + dbState + '"/><tr><td id="nEnv' + i + '">' + name + '</td><td><center><label class="switch"><input id="s' + i + '" type="checkbox" onchange="changeState(' + i + ');" ' + isDisabled + ' ' + isChecked + '><span class="slider round"></span></label><br><label id="sEnv' + i + '">OIC: ' + state + '<br>DB: ' + dbState + '</label></center></td></tr>';
         }
 
         document.getElementById('services').innerHTML = rowHtml;
@@ -96,7 +96,7 @@ function changeState(id) {
         case false:
 
             document.getElementById('sEnv' + id).innerText = "STOPPING";
-            document.getElementById('switch' + id).disabled = true;
+            document.getElementById('s' + id).disabled = true;
 
             nEnv = document.getElementById("nEnv" + id).innerText;
             dbName = document.getElementById("dbName" + id).value;

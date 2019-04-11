@@ -1,7 +1,7 @@
 {
     "connection_details":{
-        "oic_rest_endpoint":"https://psm.us.oraclecloud.com/",
-        "db_rest_endpoint":"https://dbaas.oraclecloud.com/",
+        "oic_rest_endpoint":"https://psm.aucom.oraclecloud.com/",
+        "db_rest_endpoint":"https://psm.aucom.oraclecloud.com/",
         "idcs_id":"idcs-xxx",
         "user":{
             "username":"cloud.admin",
@@ -18,8 +18,10 @@
     "schedule":{
         "frequency":1,
         "frequency_unit":"DAYS",
-        "timezone":"+11",
+        "timezone":"+10",
         "oic_shutdown":1800,
-        "db_shutdown":1830
+        "db_shutdown":1830,
+        "db_startup":700,
+        "oic_startup":730
     }
 }

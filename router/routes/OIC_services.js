@@ -22,51 +22,38 @@ if (!config || !config.connection_details || !config.oic_instance_details || !co
 }
 //Lets just assume that the rest of the config is ok
 
-//Calculate start time
-var nowTime = new Date();
-var oicHours = Math.floor(config.schedule.oic_shutdown / 100) - parseInt(config.schedule.timezone);
-var oicMins = config.schedule.oic_shutdown % 100 - ((parseFloat(config.schedule.timezone) - parseInt(config.schedule.timezone)) * 60);
-if (oicMins < 0) {
-  oicHours--;
-  oicMins = oicMins * -1;
-}
-if (oicHours < 0) {
-  oicHours += 24;
-}
-if (nowTime.getUTCHours() > oicHours || (nowTime.getUTCHours() == oicHours && nowTime.getUTCMinutes() > oicMins)) {
-  //Need to schedule for tomorrow
-  oicHours += 24;
-}
-
-var dbHours = Math.floor(config.schedule.db_shutdown / 100) - parseInt(config.schedule.timezone);
-var dbMins = config.schedule.db_shutdown % 100 - ((parseFloat(config.schedule.timezone) - parseInt(config.schedule.timezone)) * 60);
-if (dbMins < 0) {
-  dbHours--;
-  dbMins = dbMins * -1;
-}
-if (dbHours < 0) {
-  dbHours += 24;
-}
-if (nowTime.getUTCHours() > dbHours || (nowTime.getUTCHours() == dbHours && nowTime.getUTCMinutes() > dbMins)) {
-  //Need to schedule for tomorrow
-  dbHours += 24;
-}
-
-var startTime = new Date(0, 0, 0, 0, 0, 0, 0);
-startTime.setUTCFullYear(nowTime.getUTCFullYear());
-startTime.setUTCMonth(nowTime.getUTCMonth());
-startTime.setUTCDate(nowTime.getUTCDate());
-startTime.setUTCHours(oicHours);
-startTime.setUTCMinutes(oicMins);
-var startOicOffset = startTime.getTime() - nowTime.getTime();
-startTime.setUTCHours(dbHours);
-startTime.setUTCMinutes(dbMins);
-var startDbOffset = startTime.getTime() - nowTime.getTime();
-
 var scheduler = new Scheduler();
 
+function calculateTime(dTime) {
 
 
+  //Calculate start time
+  var nowTime = new Date();
+  var oicHours = Math.floor(dTime / 100) - parseInt(config.schedule.timezone);
+  var oicMins = dTime % 100 - ((parseFloat(config.schedule.timezone) - parseInt(config.schedule.timezone)) * 60);
+  if (oicMins < 0) {
+    oicHours--;
+    oicMins = oicMins * -1;
+  }
+  if (oicHours < 0) {
+    oicHours += 24;
+  }
+  if (nowTime.getUTCHours() > oicHours || (nowTime.getUTCHours() == oicHours && nowTime.getUTCMinutes() > oicMins)) {
+    //Need to schedule for tomorrow
+    oicHours += 24;
+  }
+
+  var startTime = new Date(0, 0, 0, 0, 0, 0, 0);
+  var startOffset;
+  startTime.setUTCFullYear(nowTime.getUTCFullYear());
+  startTime.setUTCMonth(nowTime.getUTCMonth());
+  startTime.setUTCDate(nowTime.getUTCDate());
+  startTime.setUTCHours(oicHours);
+  startTime.setUTCMinutes(oicMins);
+
+  startOffset = startTime.getTime() - nowTime.getTime();
+  return startOffset;
+}
 
 //CRI change:
 var bodyParser = require('body-parser');
@@ -78,8 +65,8 @@ var data = 'localConfig = {"SERVER_URL": "' + process.env.server_url + '", "CONS
 console.log("data is [" + data + "]");
 
 fs.writeFile('./public/js/tempConfig.js', data, function (err, data) {
-    if (err) console.log(err);
-    console.log("Successfully written local config to file [public/js/tempConfig.js]");
+  if (err) console.log(err);
+  console.log("Successfully written local config to file [public/js/tempConfig.js]");
 });
 
 
@@ -168,48 +155,62 @@ module.exports = function (app, ensureAuthenticated) {
 
   });
 
+  /**
+   * Schedule OIC shutdown:
+   */
+   
+  // Setting offset for shutting down jobs:
+  var shutdownOicOffset = calculateTime(config.schedule.oic_shutdown);
+  var shutdownDbOffset = calculateTime(config.schedule.db_shutdown);
 
-  //Schedule OIC shutdown
-  // if (config.oic_instance_details.stop_all_instances) {
-  //   scheduler.scheduleJob(startOicOffset, true, config.schedule.frequency_unit, config.schedule.frequency, shutdownAllOICInstances, []);
-  // } else {
-  //   scheduler.scheduleJob(startOicOffset, true, config.schedule.frequency_unit, config.schedule.frequency, shutdownOICInstances, [config.oic_instance_details.instance_names]);
-  // }
+  // OIC shutdown:
+  // scheduler.scheduleJob(shutdownOicOffset, true, config.schedule.frequency_unit, config.schedule.frequency, shutdownOICInstancesOnly, [config.oic_instance_details.instance_names]);
+  // DB shutdown
+  // scheduler.scheduleJob(shutdownDbOffset, true, config.schedule.frequency_unit, config.schedule.frequency, shutdownDBInstancesOnly, [config.db_instance_details.instance_names]);
 
-  //DB shutdown
-  // scheduler.scheduleJob(startDbOffset, true, config.schedule.frequency_unit, config.schedule.frequency, shutdownDBInstances, [config.db_instance_details.instance_names]);
+  // Test Schedulers:
+  // scheduler.scheduleJob(shutdownOicOffset, true, config.schedule.frequency_unit, config.schedule.frequency, testScheduler, ["shutdownOicOffset", config.oic_instance_details.instance_names]);
+  // scheduler.scheduleJob(shutdownDbOffset, true, config.schedule.frequency_unit, config.schedule.frequency, testScheduler, ["shutdownDbOffset", config.db_instance_details.instance_names]);
 
   /**
-   * function "shutdownAllOICInstancesOnly" is meant to be called from scheduler only. It stops only all OIC instances and not
-   * the associated DBs. It is supposed to be another scheduled job to then stop all DBs.
+   * Schedule OIC start up:
    */
-  function shutdownAllOICInstancesOnly() {
 
-    oicInstances.getAllInstances(config.connection_details, function (err, instances) {
-      if (err) {
-        return logger.error(err);
-      }
-      logger.info("Got list of instances: [" + JSON.stringify(instances) + "]");
-      async.eachOf(instances, function (instance) {
+  // Setting offset for starting up jobs:
+  var startOicOffset = calculateTime(config.schedule.oic_startup);
+  var startDbOffset = calculateTime(config.schedule.db_startup);
 
-        logger.info("Scheduling stop of [" + instance.serviceName + ":" + instance.state + ", dbName:" + instance.dbName + "...");
+  // DB startup
+  // scheduler.scheduleJob(startDbOffset, true, config.schedule.frequency_unit, config.schedule.frequency, startDBInstancesOnly, [config.db_instance_details.instance_names]);
+  // OIC startup
+  // scheduler.scheduleJob(startOicOffset, true, config.schedule.frequency_unit, config.schedule.frequency, startOICInstancesOnly, [config.oic_instance_details.instance_names]);
 
-        oicInstances.stopInstance(instance.serviceName, config.connection_details, function (err) {
-          if (err) {
-            return logger.warn("Error when attempting to shutdown instance [" + instance + "], " + err);
-          }
-          logger.info("Scheduled shutdown of [" + instance + "].");
-        });
-      }, function () {
-        logger.info("Finished shutdown.");
-      });
-    });
-  }
+  // Test Schedulers:
+  // scheduler.scheduleJob(startDbOffset, true, config.schedule.frequency_unit, config.schedule.frequency, testScheduler, ["startDbOffset", config.db_instance_details.instance_names]);
+  // scheduler.scheduleJob(startOicOffset, true, config.schedule.frequency_unit, config.schedule.frequency, testScheduler, ["startOicOffset", config.oic_instance_details.instance_names]);
+  
+
+  /**
+   * Starting up functions:
+   */
 
   function startOICInstances(arrInstances, arrDbNames) {
 
     /**
      * Starting DBCS first, then OIC instances.
+     */
+    startDBInstancesOnly(arrDbNames);
+
+    // Setting a non-repeatable job in 30 mins.
+    logger.info("Scheduling OIC start in 30 minutes from now: ");
+
+    scheduler.scheduleJob(30 * 60 * 1000, false, "NA", 0, startOICInstancesOnly, arrInstances);
+  }
+
+  function startDBInstancesOnly(arrDbNames) {
+
+    /**
+     * Starting DBCS instances:
      */
 
     async.eachOf(arrDbNames, function (instance) {
@@ -220,21 +221,13 @@ module.exports = function (app, ensureAuthenticated) {
         }
         logger.info("Scheduled start of [" + instance + "].");
 
-
-        logger.info("Scheduling DB start in 30 minutes from now: ");
-
-        // Setting a non-repeatable job in 30 mins.
-        /**
-         * @TODO: Move back to 30 minutes after test
-         */
-        scheduler.scheduleJob(1 * 60 * 1000, false, "NA", 0, startOICOnlyInstances, arrInstances);
       });
     }, function () {
       logger.info("Finished DB start.");
     });
   }
 
-  function startOICOnlyInstances(arrInstances) {
+  function startOICInstancesOnly(arrInstances) {
 
     async.eachOf(arrInstances, function (instance) {
 
@@ -252,9 +245,26 @@ module.exports = function (app, ensureAuthenticated) {
     });
   }
 
-
+  /**
+   * Shutting down functions:
+   */
 
   function shutdownOICInstances(arrInstances, arrDbNames) {
+
+    /**
+     * Shutting down OIC first, then associated DBCS instances:
+     */
+
+    shutdownOICInstancesOnly(arrInstances);
+
+    // Setting a non-repeatable job in 30 mins.
+    logger.info("Scheduling DB shutdown in 30 minutes from now: ");
+
+    scheduler.scheduleJob(30 * 60 * 1000, false, "NA", 0, shutdownDBInstancesOnly, arrDbNames);
+
+  }
+
+  function shutdownOICInstancesOnly(arrInstances) {
 
     async.eachOf(arrInstances, function (instance) {
 
@@ -265,13 +275,6 @@ module.exports = function (app, ensureAuthenticated) {
           return logger.warn("Error when attempting to shutdown instance [" + instance + "], " + err);
         }
 
-        logger.info("Scheduling DB shutdown in 30 minutes from now: ");
-
-        // Setting a non-repeatable job in 30 mins.
-        /**
-         * @TODO: Move back to 30 minutes after test
-         */
-        scheduler.scheduleJob(1 * 60 * 1000, false, "NA", 0, shutdownDBInstances, arrDbNames);
       });
     }, function () {
 
@@ -279,7 +282,7 @@ module.exports = function (app, ensureAuthenticated) {
     });
   }
 
-  function shutdownDBInstances(instances) {
+  function shutdownDBInstancesOnly(instances) {
     async.eachOf(instances, function (instance) {
       logger.info("Shutting down DBCS [" + instance + "]");
       dbInstances.stopInstance(instance, config.connection_details, function (err) {
@@ -290,6 +293,61 @@ module.exports = function (app, ensureAuthenticated) {
       });
     }, function () {
       logger.info("Finished DB shutdown.");
+    });
+  }
+
+
+  /**
+   * Deprectaed functions:
+   */
+
+  /**
+   * function "shutdownAllOICInstancesOnly" is meant to be called from scheduler only. It stops only all OIC instances and not
+   * the associated DBs. It is supposed to be another scheduled job to then stop all DBs.
+   */
+  // function shutdownAllOICInstancesOnly() {
+
+  //   oicInstances.getAllInstances(config.connection_details, function (err, instances) {
+  //     if (err) {
+  //       return logger.error(err);
+  //     }
+  //     logger.info("Got list of instances: [" + JSON.stringify(instances) + "]");
+  //     async.eachOf(instances, function (instance) {
+
+  //       logger.info("Scheduling stop of [" + instance.serviceName + ":" + instance.state + ", dbName:" + instance.dbName + "...");
+
+  //       oicInstances.stopInstance(instance.serviceName, config.connection_details, function (err) {
+  //         if (err) {
+  //           return logger.warn("Error when attempting to shutdown instance [" + instance + "], " + err);
+  //         }
+  //         logger.info("Scheduled shutdown of [" + instance + "].");
+  //       });
+  //     }, function () {
+  //       logger.info("Finished shutdown.");
+  //     });
+  //   });
+  // }
+
+  // OIC shutdown
+  // if (config.oic_instance_details.stop_all_instances) {
+  //   scheduler.scheduleJob(startOicOffset, true, config.schedule.frequency_unit, config.schedule.frequency, shutdownAllOICInstancesOnly, []);
+  //DB shutdown
+  // scheduler.scheduleJob(startDbOffset, true, config.schedule.frequency_unit, config.schedule.frequency, shutdownDBInstances, [config.db_instance_details.instance_names]);  
+  // } else {
+  //   scheduler.scheduleJob(startOicOffset, true, config.schedule.frequency_unit, config.schedule.frequency, shutdownOICInstances, [config.oic_instance_details.instance_names]);
+  // }
+
+  function testScheduler(arrValues) {
+
+    /**
+     * Starting DBCS instances:
+     */
+
+    async.eachOf(arrValues, function (instance) {
+      logger.info("Running instance value [" + instance + "]");
+      
+    }, function () {
+      logger.info("Finished running instances.");
     });
   }
 

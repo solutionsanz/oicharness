@@ -69,6 +69,9 @@ module.exports.startInstance = function (instanceName, connectionDetails, callba
       "lifecycleState": "start"
     })
   }
+
+  console.log("****** options to be sent is [" + JSON.stringify(options) + "]");
+
   request(options, function (err, req, data) {
     if (err) {
       return callback(err);
