@@ -70,7 +70,7 @@ module.exports.startInstance = function (instanceName, connectionDetails, callba
     })
   }
 
-  console.log("****** options to be sent is [" + JSON.stringify(options) + "]");
+  // console.log("****** options to be sent is [" + JSON.stringify(options) + "]");
 
   request(options, function (err, req, data) {
     if (err) {

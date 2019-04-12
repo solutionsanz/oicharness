@@ -158,7 +158,7 @@ module.exports = function (app, ensureAuthenticated) {
   /**
    * Schedule OIC shutdown:
    */
-   
+
   // Setting offset for shutting down jobs:
   var shutdownOicOffset = calculateTime(config.schedule.oic_shutdown);
   var shutdownDbOffset = calculateTime(config.schedule.db_shutdown);
@@ -188,7 +188,7 @@ module.exports = function (app, ensureAuthenticated) {
   // Test Schedulers:
   // scheduler.scheduleJob(startDbOffset, true, config.schedule.frequency_unit, config.schedule.frequency, testScheduler, ["startDbOffset", config.db_instance_details.instance_names]);
   // scheduler.scheduleJob(startOicOffset, true, config.schedule.frequency_unit, config.schedule.frequency, testScheduler, ["startOicOffset", config.oic_instance_details.instance_names]);
-  
+
 
   /**
    * Starting up functions:
@@ -202,9 +202,10 @@ module.exports = function (app, ensureAuthenticated) {
     startDBInstancesOnly(arrDbNames);
 
     // Setting a non-repeatable job in 30 mins.
-    logger.info("Scheduling OIC start in 30 minutes from now: ");
+    logger.info("Scheduling OIC start in a few minutes: ");
 
-    scheduler.scheduleJob(30 * 60 * 1000, false, "NA", 0, startOICInstancesOnly, arrInstances);
+    whenReady(arrDbNames, "READY", startOICInstancesOnly, arrInstances); // READY/STOPPED
+    //scheduler.scheduleJob(30 * 60 * 1000, false, "NA", 0, startOICInstancesOnly, arrInstances);
   }
 
   function startDBInstancesOnly(arrDbNames) {
@@ -258,9 +259,10 @@ module.exports = function (app, ensureAuthenticated) {
     shutdownOICInstancesOnly(arrInstances);
 
     // Setting a non-repeatable job in 30 mins.
-    logger.info("Scheduling DB shutdown in 30 minutes from now: ");
+    logger.info("Scheduling DB to shutdown in a few minutes: ");
 
-    scheduler.scheduleJob(30 * 60 * 1000, false, "NA", 0, shutdownDBInstancesOnly, arrDbNames);
+    whenReady(arrInstances, "STOPPED", shutdownDBInstancesOnly, arrDbNames); // READY/STOPPED
+    // scheduler.scheduleJob(30 * 60 * 1000, false, "NA", 0, shutdownDBInstancesOnly, arrDbNames);
 
   }
 
@@ -296,6 +298,56 @@ module.exports = function (app, ensureAuthenticated) {
     });
   }
 
+  function whenReady(targetInstances, targetState, job, arrInstances) {
+
+    logger.info("Initating whenReady for [" + JSON.stringify(targetInstances) + ", [" + targetState + "]");
+
+    oicInstances.getAllInstances(config.connection_details, function (err, instances) {
+      if (err) {
+
+        log("GET", "/services/oic", "Error while retrieving list of OIC instances. Verify parameters and try again. Error: " + err);
+        res.status(500).end("Error while retrieving list of OIC instances. Verify parameters and try again. Error: " + err);
+        return logger.error(err);
+      }
+
+      logger.info("Number of instances retrieved: [" + instances.length + "]");
+
+      var numOfScores = 0;
+
+      for (var instance of instances) {
+
+        var i = 0;
+        for (var ti of targetInstances) {
+
+          // Validating if target instance also aligns with target state (e.g. oic/db):
+          if ((instance.name == ti && instance.state == targetState) || (instance.dbName == ti && instance.dbState == targetState)) {
+
+            logger.info("Match successful, instance [" + ti + "], found [" + targetState + "]");
+            logger.info("Executing job for aligned associated instance [" + arrInstances[i] + "]");
+
+            // Executing job for this instance:
+            // For simplicity, assuming that arrays of both oic and db share the same index for related environments.
+            job([arrInstances[i]]);
+            ++numOfScores;
+          }
+          // i is used to aligned oic to db array names.
+          ++i;
+        }
+      }
+
+      if (numOfScores < targetInstances.length) {
+
+        logger.info("Some instances pending, waiting for another round...");
+
+        // Waiting for status of instance to be as desired.
+
+        setTimeout(function () {
+          whenReady(targetInstances, targetState, job, instances)
+        }, 2 * 60 * 1000); //2 mins    
+      }
+
+    });
+  }
 
   /**
    * Deprectaed functions:
@@ -345,7 +397,7 @@ module.exports = function (app, ensureAuthenticated) {
 
     async.eachOf(arrValues, function (instance) {
       logger.info("Running instance value [" + instance + "]");
-      
+
     }, function () {
       logger.info("Finished running instances.");
     });
