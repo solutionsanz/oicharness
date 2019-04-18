@@ -55,6 +55,8 @@ function calculateTime(dTime) {
   return startOffset;
 }
 
+
+
 //CRI change:
 var bodyParser = require('body-parser');
 
@@ -89,8 +91,8 @@ module.exports = function (app, ensureAuthenticated) {
    * 
    */
 
-  app.get('/services/oic', ensureAuthenticated, function (req, res) {
 
+  app.get('/services/oic', ensureAuthenticated, function (req, res) {
 
     oicInstances.getAllInstances(config.connection_details, function (err, instances) {
       if (err) {
@@ -164,13 +166,9 @@ module.exports = function (app, ensureAuthenticated) {
   var shutdownDbOffset = calculateTime(config.schedule.db_shutdown);
 
   // OIC shutdown:
-  // scheduler.scheduleJob(shutdownOicOffset, true, config.schedule.frequency_unit, config.schedule.frequency, shutdownOICInstancesOnly, [config.oic_instance_details.instance_names]);
+  scheduler.scheduleJob(shutdownOicOffset, true, config.schedule.frequency_unit, config.schedule.frequency, shutdownOICInstancesOnly, [config.oic_instance_details.instance_names]);
   // DB shutdown
-  // scheduler.scheduleJob(shutdownDbOffset, true, config.schedule.frequency_unit, config.schedule.frequency, shutdownDBInstancesOnly, [config.db_instance_details.instance_names]);
-
-  // Test Schedulers:
-  // scheduler.scheduleJob(shutdownOicOffset, true, config.schedule.frequency_unit, config.schedule.frequency, testScheduler, ["shutdownOicOffset", config.oic_instance_details.instance_names]);
-  // scheduler.scheduleJob(shutdownDbOffset, true, config.schedule.frequency_unit, config.schedule.frequency, testScheduler, ["shutdownDbOffset", config.db_instance_details.instance_names]);
+  scheduler.scheduleJob(shutdownDbOffset, true, config.schedule.frequency_unit, config.schedule.frequency, shutdownDBInstancesOnly, [config.db_instance_details.instance_names]);
 
   /**
    * Schedule OIC start up:
@@ -181,13 +179,9 @@ module.exports = function (app, ensureAuthenticated) {
   var startDbOffset = calculateTime(config.schedule.db_startup);
 
   // DB startup
-  // scheduler.scheduleJob(startDbOffset, true, config.schedule.frequency_unit, config.schedule.frequency, startDBInstancesOnly, [config.db_instance_details.instance_names]);
+  scheduler.scheduleJob(startDbOffset, true, config.schedule.frequency_unit, config.schedule.frequency, startDBInstancesOnly, [config.db_instance_details.instance_names]);
   // OIC startup
-  // scheduler.scheduleJob(startOicOffset, true, config.schedule.frequency_unit, config.schedule.frequency, startOICInstancesOnly, [config.oic_instance_details.instance_names]);
-
-  // Test Schedulers:
-  // scheduler.scheduleJob(startDbOffset, true, config.schedule.frequency_unit, config.schedule.frequency, testScheduler, ["startDbOffset", config.db_instance_details.instance_names]);
-  // scheduler.scheduleJob(startOicOffset, true, config.schedule.frequency_unit, config.schedule.frequency, testScheduler, ["startOicOffset", config.oic_instance_details.instance_names]);
+  scheduler.scheduleJob(startOicOffset, true, config.schedule.frequency_unit, config.schedule.frequency, startOICInstancesOnly, [config.oic_instance_details.instance_names]);
 
 
   /**
@@ -210,6 +204,12 @@ module.exports = function (app, ensureAuthenticated) {
 
   function startDBInstancesOnly(arrDbNames) {
 
+    // Exit if it is a weekend:
+    if (isTodayAWeekend()) {
+      logger.info("Today is a weekend, so we won't start DB... Exiting, nothing to do.");
+      exit;
+    }
+
     /**
      * Starting DBCS instances:
      */
@@ -229,6 +229,12 @@ module.exports = function (app, ensureAuthenticated) {
   }
 
   function startOICInstancesOnly(arrInstances) {
+
+    // Validating if it a weekend...
+    if (isTodayAWeekend()) {
+      logger.info("Today is a weekend, so we won't start OIC... Exiting, nothing to do.");
+      exit;
+    }
 
     async.eachOf(arrInstances, function (instance) {
 
@@ -300,7 +306,8 @@ module.exports = function (app, ensureAuthenticated) {
 
   function whenReady(targetInstances, targetState, job, arrInstances) {
 
-    logger.info("Initating whenReady for [" + JSON.stringify(targetInstances) + ", [" + targetState + "]");
+    logger.info("Initating whenReady for [" + JSON.stringify(targetInstances) + ", [" + targetState + "]" +
+      " - Continue then with [" + JSON.stringify(arrInstances) + "]");
 
     oicInstances.getAllInstances(config.connection_details, function (err, instances) {
       if (err) {
@@ -318,6 +325,8 @@ module.exports = function (app, ensureAuthenticated) {
 
         var i = 0;
         for (var ti of targetInstances) {
+
+          log("NA", "whenReady", "Evaluating target [" + ti + "-" + targetState + "], versus [" + instance.name + "|" + instance.state + "-" + instance.dbName + "|" + instance.dbState + "]");
 
           // Validating if target instance also aligns with target state (e.g. oic/db):
           if ((instance.name == ti && instance.state == targetState) || (instance.dbName == ti && instance.dbState == targetState)) {
@@ -342,7 +351,7 @@ module.exports = function (app, ensureAuthenticated) {
         // Waiting for status of instance to be as desired.
 
         setTimeout(function () {
-          whenReady(targetInstances, targetState, job, instances)
+          whenReady(targetInstances, targetState, job, arrInstances)
         }, 2 * 60 * 1000); //2 mins    
       }
 
@@ -401,6 +410,22 @@ module.exports = function (app, ensureAuthenticated) {
     }, function () {
       logger.info("Finished running instances.");
     });
+  }
+
+
+  function isTodayAWeekend() {
+    // Exit if it is a weekend:
+    var dayOfWeek = new Date().getDay();
+    logger.info("Today is day number [" + dayOfWeek + "] of the week...");
+    var isWeekend = (dayOfWeek === 6) || (dayOfWeek === 0);
+    if (isWeekend) {
+
+      // Today is a weekend...
+      return true;
+    }
+
+    // Today is not a weekend...
+    return false;
   }
 
 };

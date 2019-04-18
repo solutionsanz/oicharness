@@ -22,18 +22,18 @@ function ensureAuthenticated(req, res, next) {
   }
   //denied. redirect to login
   //Could generate redirect url dynamically... but lazy
-  res.redirect(config.idcs_uri + config.urls.auth + "?client_id=" +config.login_client.id 
-  +"&redirect_uri=" + config.redirect_uri + "&response_type=code&scope=urn:opc:idm:__myscopes__");
+  res.redirect(config.idcs_uri + config.urls.auth + "?client_id=" + config.login_client.id +
+    "&redirect_uri=" + config.redirect_uri + "&response_type=code&scope=urn:opc:idm:__myscopes__");
 }
 
 //Expose our demo UI
 app.use('/demo', ensureAuthenticated, express.static(path.join(__dirname, 'public')));
 
 //Handler for 3-legged callback
-app.get('/callback', function(req, res){
+app.get('/callback', function (req, res) {
   //grab the code from the response
   var code = req.query.code;
-  if(!code){
+  if (!code) {
     //Uh oh
     return res.status(401).send("Access Denied");
   }
@@ -45,36 +45,39 @@ app.get('/callback', function(req, res){
       "Authorization": "Basic " + Buffer.from(config.login_client.id + ":" + config.login_client.secret).toString('base64'),
       "Content-Type": "application/x-www-form-urlencoded"
     },
-    body: "grant_type=authorization_code&code=" +code
+    body: "grant_type=authorization_code&code=" + code
   };
-  request(options, function(err, response, body){
-    if(err){
+  request(options, function (err, response, body) {
+    if (err) {
       console.error(err);
       return res.status(500).send("Something went wrong getting the tokens from IDCS");
     }
-    if(response.statusCode != 200){
-      console.error("Got a status of " +response.statusCode +" from IDCS...")
+    if (response.statusCode != 200) {
+      console.error("Got a status of " + response.statusCode + " from IDCS...")
       console.error(body);
       return res.status(500).send("Something went wrong getting the tokens from IDCS");
     }
     //We should have an access token and a refresh token in our response body
-    try{
+    try {
       var bodyJSON = JSON.parse(body);
       //return the access token in a cookie
-      res.cookie(TOKEN_CLAIMS_COOKIE, bodyJSON.access_token, {httpOnly:true, expires:new Date(Date.now() + ONE_HOUR)}).redirect("/demo");
-    }catch(ex){
+      res.cookie(TOKEN_CLAIMS_COOKIE, bodyJSON.access_token, {
+        httpOnly: true,
+        expires: new Date(Date.now() + ONE_HOUR)
+      }).redirect("/demo");
+    } catch (ex) {
       return res.status(500).send("Something went wrong getting the tokens from IDCS - in parsing...");
     }
-    
+
   });
 });
 
-app.get("/test-api", function(req, res){
-  
+app.get("/test-api", function (req, res) {
+
 });
 
-app.listen(3000, function () {
-  console.log('Refresh token demo app listening on port 3000!');
+app.listen(process.env.PORT || 3000, function () {
+  console.log('Refresh token demo app listening on port ' + process.env.PORT || 3000 + '!');
 });
 
 // Configure routes and middleware for the application
@@ -101,7 +104,7 @@ function _validateToken(req) {
   } catch (err) {
     return false;
   }
-  if (!payload.exp || new Date(payload.exp*1000).getTime() < Date.now()) {
+  if (!payload.exp || new Date(payload.exp * 1000).getTime() < Date.now()) {
     console.log("Token expired!");
     return false;
   }
