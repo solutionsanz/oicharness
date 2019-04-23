@@ -1,3 +1,7 @@
 oic_password=XXXX
 server_url=http://localhost:3000/services/oic
 console_url=https://xxxx
+oic_startup=0730
+db_startup=0700
+oic_shutdown=1900
+db_shutdown=1930

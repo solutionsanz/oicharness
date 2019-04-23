@@ -9,10 +9,6 @@ window.onload = function () {
 
      console.log("SERVER_URLis [" + SERVER_URL + "], CONSOLE_URL is [" + CONSOLE_URL + "]");
 
-    // Setting URLs:
-    document.getElementById('consoleid').href = "javascript:window.open('" + CONSOLE_URL + "');";
-
-
     console.log("SERVER_URL is [" + SERVER_URL + "]");
 
     if (SERVER_URL == null || SERVER_URL == undefined) {
@@ -65,6 +61,12 @@ function cleanTable() {
 
 function goHome() {
     document.getElementById('services').innerHTML = '';
+}
+
+function openConsole(){
+
+    // Setting URLs:
+    window.open(CONSOLE_URL);
 }
 
 

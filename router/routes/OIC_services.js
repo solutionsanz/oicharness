@@ -26,30 +26,54 @@ var scheduler = new Scheduler();
 
 function calculateTime(dTime) {
 
+  if (typeof dTime != 'number') {
+    console.log("Casting dTime to number");
+
+    dTime = parseInt(dTime, 10);
+  }
+
 
   //Calculate start time
   var nowTime = new Date();
-  var oicHours = Math.floor(dTime / 100) - parseInt(config.schedule.timezone);
-  var oicMins = dTime % 100 - ((parseFloat(config.schedule.timezone) - parseInt(config.schedule.timezone)) * 60);
-  if (oicMins < 0) {
-    oicHours--;
-    oicMins = oicMins * -1;
+
+  console.log("nowTime is [" + nowTime + "]");
+
+  var dTimeHours = Math.floor(dTime / 100) - parseInt(config.schedule.timezone);
+
+  console.log("dTimeHours is [" + dTimeHours + "]");
+
+  var dTimeMins = dTime % 100 - ((parseFloat(config.schedule.timezone) - parseInt(config.schedule.timezone)) * 60);
+
+  console.log("dTimeMins is [" + dTimeMins + "]");
+
+  if (dTimeMins < 0) {
+    dTimeHours--;
+    dTimeMins = dTimeMins * -1;
+
+    console.log("Mins is less than 0, so subtracting one from the hours, hours, mins [" + dTimeHours + ", " + dTimeMins + "]");
+
   }
-  if (oicHours < 0) {
-    oicHours += 24;
+  if (dTimeHours < 0) {
+    dTimeHours += 24;
+    console.log("Hours is less than 0, so shifting to next day, hours, mins [" + dTimeHours + ", " + dTimeMins + "]");
   }
-  if (nowTime.getUTCHours() > oicHours || (nowTime.getUTCHours() == oicHours && nowTime.getUTCMinutes() > oicMins)) {
+  if (nowTime.getUTCHours() > dTimeHours || (nowTime.getUTCHours() == dTimeHours && nowTime.getUTCMinutes() > dTimeMins)) {
     //Need to schedule for tomorrow
-    oicHours += 24;
+    dTimeHours += 24;
+    console.log("Time still in past, so shifting to tomorrow: hours, mins [" + dTimeHours + ", " + dTimeMins + "]");
   }
 
-  var startTime = new Date(0, 0, 0, 0, 0, 0, 0);
+  var startTime = new Date();
+  console.log("startTime is [" + startTime + "]");
   var startOffset;
   startTime.setUTCFullYear(nowTime.getUTCFullYear());
   startTime.setUTCMonth(nowTime.getUTCMonth());
   startTime.setUTCDate(nowTime.getUTCDate());
-  startTime.setUTCHours(oicHours);
-  startTime.setUTCMinutes(oicMins);
+  startTime.setUTCHours(dTimeHours);
+  startTime.setUTCMinutes(dTimeMins);
+  startTime.setUTCSeconds(0);
+  startTime.setUTCMilliseconds(0);
+  console.log("startTime after adjusting is [" + startTime + "]");
 
   startOffset = startTime.getTime() - nowTime.getTime();
   return startOffset;
@@ -162,26 +186,29 @@ module.exports = function (app, ensureAuthenticated) {
    */
 
   // Setting offset for shutting down jobs:
-  var shutdownOicOffset = calculateTime(config.schedule.oic_shutdown);
-  var shutdownDbOffset = calculateTime(config.schedule.db_shutdown);
+  var shutdownOicOffset = calculateTime(process.env.oic_shutdown || config.schedule.oic_shutdown);
+  var shutdownDbOffset = calculateTime(process.env.db_shutdown || config.schedule.db_shutdown);
 
   // OIC shutdown:
-  scheduler.scheduleJob(shutdownOicOffset, true, config.schedule.frequency_unit, config.schedule.frequency, shutdownOICInstancesOnly, [config.oic_instance_details.instance_names]);
+  scheduler.scheduleJob(shutdownOicOffset, true, config.schedule.frequency_unit, config.schedule.frequency, shutdownOICInstancesOnly, config.oic_instance_details.instance_names);
   // DB shutdown
-  scheduler.scheduleJob(shutdownDbOffset, true, config.schedule.frequency_unit, config.schedule.frequency, shutdownDBInstancesOnly, [config.db_instance_details.instance_names]);
+  scheduler.scheduleJob(shutdownDbOffset, true, config.schedule.frequency_unit, config.schedule.frequency, shutdownDBInstancesOnly, config.db_instance_details.instance_names);
 
   /**
    * Schedule OIC start up:
    */
 
   // Setting offset for starting up jobs:
-  var startOicOffset = calculateTime(config.schedule.oic_startup);
-  var startDbOffset = calculateTime(config.schedule.db_startup);
+  var startOicOffset = calculateTime(process.env.oic_startup || config.schedule.oic_startup);
+  var startDbOffset = calculateTime(process.env.db_startup || config.schedule.db_startup);
 
   // DB startup
-  scheduler.scheduleJob(startDbOffset, true, config.schedule.frequency_unit, config.schedule.frequency, startDBInstancesOnly, [config.db_instance_details.instance_names]);
+  scheduler.scheduleJob(startDbOffset, true, config.schedule.frequency_unit, config.schedule.frequency, startDBInstancesOnly, config.db_instance_details.instance_names);
   // OIC startup
-  scheduler.scheduleJob(startOicOffset, true, config.schedule.frequency_unit, config.schedule.frequency, startOICInstancesOnly, [config.oic_instance_details.instance_names]);
+  scheduler.scheduleJob(startOicOffset, true, config.schedule.frequency_unit, config.schedule.frequency, startOICInstancesOnly, config.oic_instance_details.instance_names);
+
+  logger.info("******  shutdownOicOffset is [" + shutdownOicOffset + "], shutdownDbOffset is [" + shutdownDbOffset +
+    "], startOicOffset is [" + startOicOffset + "], startDbOffset is [" + startDbOffset + "]");
 
 
   /**
@@ -207,7 +234,7 @@ module.exports = function (app, ensureAuthenticated) {
     // Exit if it is a weekend:
     if (isTodayAWeekend()) {
       logger.info("Today is a weekend, so we won't start DB... Exiting, nothing to do.");
-      exit;
+      return;
     }
 
     /**
@@ -233,7 +260,7 @@ module.exports = function (app, ensureAuthenticated) {
     // Validating if it a weekend...
     if (isTodayAWeekend()) {
       logger.info("Today is a weekend, so we won't start OIC... Exiting, nothing to do.");
-      exit;
+      return;
     }
 
     async.eachOf(arrInstances, function (instance) {
@@ -414,11 +441,20 @@ module.exports = function (app, ensureAuthenticated) {
 
 
   function isTodayAWeekend() {
+
+    const SUNDAY = 0;
+    const MONDAY = 1;
+    const TUESDAY = 2;
+    const WEDNESDAY = 3;
+    const THURSDAY = 4;
+    const FRIDAY = 5;
+    const SATURDAY = 6;
+
     // Exit if it is a weekend:
     var dayOfWeek = new Date().getDay();
     logger.info("Today is day number [" + dayOfWeek + "] of the week...");
-    var isWeekend = (dayOfWeek === 6) || (dayOfWeek === 0);
-    if (isWeekend) {
+    var isWeekendInAUS = (dayOfWeek == FRIDAY) || (dayOfWeek == SATURDAY); // FRIDAY UTC = Saturday AEST, SATURDAY UTC = Monday AEST...
+    if (isWeekendInAUS) {
 
       // Today is a weekend...
       return true;
